@@ -17,3 +17,15 @@
     ```
     curl http://localhost:9101/ready
     ```
+
+4. Start docker:
+
+    ```
+    docker-compose up -d
+    ```
+
+5. test command:
+
+    ```
+    grpcurl -d '{"cartId":"c1", "userId": "c1", "amount": 40}' -plaintext 127.0.0.1:8101 buscart.BusCartService.AddAmount
+    ```
