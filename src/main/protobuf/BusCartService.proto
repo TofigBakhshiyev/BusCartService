@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "bus.cart.proto";
+
+package buscart;
+
+// gRPC definition for BusCartService
+
+service BusCartService {
+  rpc AddAmount (AddAmountRequest) returns (Cart) {}
+}
+
+message AddAmountRequest {
+  string cartId = 1;
+  string userId = 2;
+  int32 amount = 3;
+}
+
+message Cart {
+  User user = 1;
+}
+
+message User {
+  string userId = 1;
+  int32 amount = 2;
+}
