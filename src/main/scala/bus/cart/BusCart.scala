@@ -29,6 +29,11 @@ object BusCart {
   final case class AddAmount(userId: String, amount: Int, replyTo: ActorRef[StatusReply[Summary]])
     extends Command
 
+  final case class ExtractAmount(userId: String, fee: Int, zone: String, bus_number: Int, time: Int,
+                                 replyTo: ActorRef[StatusReply[Summary]]) extends Command
+
+  final case class Get(userId: String, replyTo: ActorRef[Summary]) extends Command
+
   /**
    * Summary of the bus cart state, used in reply messages.
    */
@@ -46,6 +51,10 @@ object BusCart {
   final case class AmountAdded(cartId: String, userId: String, amount: Int)
     extends Event
 
+  /*final case class AmountExtracted(cartId: String, userId: String, fee: Int,
+                                   zone: String, bus_number: Int, time: Int)
+    extends Event*/
+
   final case class State(user: Map[String, Int]) extends CborSerializable {
 
     def hasItem(userId: String): Boolean =
@@ -53,6 +62,10 @@ object BusCart {
 
     def getAmount(userId: String): Int =
       user(userId)
+
+    def toSummary(userId: String): Summary = {
+       Summary(userId, user(userId))
+    }
 
     def updateItem(userId: String, amount: Int): State = {
       amount match {
@@ -72,6 +85,8 @@ object BusCart {
     command match {
       case AddAmount(userId, amount, replyTo) =>
          if (state.hasItem(userId)) {
+           if (amount <= 0)
+             Effect.reply(replyTo)(StatusReply.Error("Quantity must be greater than zero"))
            val new_amount = amount + state.getAmount(userId)
            Effect
              .persist(AmountAdded(cartId, userId, new_amount))
@@ -79,12 +94,33 @@ object BusCart {
                StatusReply.Success(Summary(userId, new_amount))
              }
          } else {
+           if (amount <= 0)
+             Effect.reply(replyTo)(StatusReply.Error("Quantity must be greater than zero"))
            Effect
              .persist(AmountAdded(cartId, userId, amount))
              .thenReply(replyTo) { updatedCart =>
                StatusReply.Success(Summary(userId, amount))
              }
          }
+      case ExtractAmount(userId, fee, zone, bus_number, time, replyTo) =>
+        if (state.hasItem(userId)) {
+          val amount = state.getAmount(userId)
+          if (amount < fee)
+            Effect.reply(replyTo)(StatusReply.Error("You have not enough money, " +
+              "please increase card balance"))
+          else {
+            val new_amount = amount - fee
+            Effect
+              .persist(AmountAdded(cartId, userId, new_amount))
+              .thenReply(replyTo) { updatedCart =>
+                StatusReply.Success(Summary(userId, new_amount))
+              }
+          }
+        } else {
+          Effect.reply(replyTo)(StatusReply.Error("There is not any card with this card Id"))
+        }
+      case Get(userId, replyTo) =>
+        Effect.reply(replyTo)(state.toSummary(userId))
     }
   }
 

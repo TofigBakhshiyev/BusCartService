@@ -11,7 +11,7 @@ import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
 
-class ShoppingCartServiceImpl(system: ActorSystem[_]) extends proto.BusCartService {
+class BusCartServiceImpl(system: ActorSystem[_]) extends proto.BusCartService {
 
   import system.executionContext
 
@@ -24,11 +24,32 @@ class ShoppingCartServiceImpl(system: ActorSystem[_]) extends proto.BusCartServi
   private val sharding = ClusterSharding(system)
 
   override def addAmount(in: proto.AddAmountRequest): Future[proto.Cart] = {
-    logger.info("addAmount {} to cart {}", in.userId, in.cartId)
+    logger.info("addAmount {} to cart {}", in.amount, in.cartId)
     val entityRef = sharding.entityRefFor(BusCart.EntityKey, in.cartId)
     val reply: Future[BusCart.Summary] =
       entityRef.askWithStatus(BusCart.AddAmount(in.userId, in.amount, _))
     val response = reply.map(cart => toProtoCart(cart))
+    convertError(response)
+  }
+
+  override def extractAmount(in: proto.ExtractAmountRequest): Future[proto.Cart] = {
+    logger.info("fee {} extracted from cart {} in {} in the {} number bus - time: {}",
+      in.fee, in.cartId, in.zone, in.busNumber, in.time)
+    val entityRef = sharding.entityRefFor(BusCart.EntityKey, in.cartId)
+    val reply: Future[BusCart.Summary] =
+      entityRef.askWithStatus(BusCart.ExtractAmount(in.userId, in.fee,
+        in.zone, in.busNumber, in.time, _))
+    val response = reply.map(cart => toProtoCart(cart))
+    convertError(response)
+  }
+
+  override def getCart(in: proto.GetCartRequest): Future[proto.Cart] = {
+    logger.info("getCart {}", in.cartId)
+    val entityRef = sharding.entityRefFor(BusCart.EntityKey, in.cartId)
+    val response =
+      entityRef.ask(BusCart.Get(in.userId, _)).map { cart =>
+          toProtoCart(cart)
+      }
     convertError(response)
   }
 

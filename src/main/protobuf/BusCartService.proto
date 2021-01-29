@@ -9,6 +9,8 @@ package buscart;
 
 service BusCartService {
   rpc AddAmount (AddAmountRequest) returns (Cart) {}
+  rpc ExtractAmount (ExtractAmountRequest) returns (Cart) {}
+  rpc GetCart (GetCartRequest) returns (Cart) {}
 }
 
 message AddAmountRequest {
@@ -24,4 +26,22 @@ message Cart {
 message User {
   string userId = 1;
   int32 amount = 2;
+}
+
+/*
+ when the user uses a card in a bus, extract fee and keep data of zones,
+ time and bus numbers for projection of rush times
+*/
+message ExtractAmountRequest {
+  string cartId = 1;
+  string userId = 2;
+  int32 fee = 3;
+  string zone = 4;
+  int32 bus_number = 5;
+  int32 time = 6;
+}
+
+message GetCartRequest {
+  string cartId = 1;
+  string userId = 2;
 }
