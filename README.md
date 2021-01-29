@@ -34,4 +34,6 @@
     grpcurl -d '{"cartId":"c1", "userId": "c1", "fee": 20, "zone": "London street", "bus_number": 3, "time": 8}' -plaintext 127.0.0.1:8101 buscart.BusCartService.ExtractAmount
     ```
 
+    ```
     grpcurl -d '{"cartId":"c1", "userId": "c1"}' -plaintext 127.0.0.1:8101 buscart.BusCartService.GetCart
+    ```
