@@ -87,20 +87,24 @@ object BusCart {
          if (state.hasItem(userId)) {
            if (amount <= 0)
              Effect.reply(replyTo)(StatusReply.Error("Quantity must be greater than zero"))
-           val new_amount = amount + state.getAmount(userId)
-           Effect
-             .persist(AmountAdded(cartId, userId, new_amount))
-             .thenReply(replyTo) { updatedCart =>
-               StatusReply.Success(Summary(userId, new_amount))
-             }
+           else {
+             val new_amount = amount + state.getAmount(userId)
+             Effect
+               .persist(AmountAdded(cartId, userId, new_amount))
+               .thenReply(replyTo) { updatedCart =>
+                 StatusReply.Success(Summary(userId, new_amount))
+               }
+           }
          } else {
            if (amount <= 0)
              Effect.reply(replyTo)(StatusReply.Error("Quantity must be greater than zero"))
-           Effect
-             .persist(AmountAdded(cartId, userId, amount))
-             .thenReply(replyTo) { updatedCart =>
-               StatusReply.Success(Summary(userId, amount))
-             }
+           else {
+             Effect
+               .persist(AmountAdded(cartId, userId, amount))
+               .thenReply(replyTo) { updatedCart =>
+                 StatusReply.Success(Summary(userId, amount))
+               }
+           }
          }
       case ExtractAmount(userId, fee, zone, bus_number, time, replyTo) =>
         if (state.hasItem(userId)) {
