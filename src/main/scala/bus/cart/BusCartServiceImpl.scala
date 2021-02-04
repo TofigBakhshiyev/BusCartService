@@ -11,7 +11,7 @@ import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
 
-class BusCartServiceImpl(system: ActorSystem[_]) extends proto.BusCartService {
+class BusCartServiceImpl(system: ActorSystem[_], userTransactionRepository: UserTransactionRepository) extends proto.BusCartService {
 
   import system.executionContext
 
@@ -67,6 +67,16 @@ class BusCartServiceImpl(system: ActorSystem[_]) extends proto.BusCartService {
         Future.failed(
           new GrpcServiceException(
             Status.INVALID_ARGUMENT.withDescription(exc.getMessage)))
+    }
+  }
+
+  override def getUserLastTransaction(in: proto.GetUserLastTransactionRequest)
+  : Future[proto.GetUserLastTransactionResponse] = {
+    userTransactionRepository.getUser(in.userId).map {
+      case Some(bus_number) =>
+        proto.GetUserLastTransactionResponse(in.userId, bus_number)
+      case None =>
+        proto.GetUserLastTransactionResponse(in.userId, 0L)
     }
   }
 }

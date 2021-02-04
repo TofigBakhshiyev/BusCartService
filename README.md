@@ -37,3 +37,9 @@
     ```
     grpcurl -d '{"cartId":"c1", "userId": "c1"}' -plaintext 127.0.0.1:8101 buscart.BusCartService.GetCart
     ```
+
+- projection, get user last transaction
+
+    ```
+    grpcurl -d '{"userId": "c1"}' -plaintext 127.0.0.1:8101 buscart.BusCartService.GetUserLastTransaction
+    ```

@@ -14,6 +14,7 @@ import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.EventSourcedBehavior
 import akka.persistence.typed.scaladsl.RetentionCriteria
+import akka.cluster.sharding.typed.scaladsl.EntityContext
 
 object BusCart {
 
@@ -48,7 +49,7 @@ object BusCart {
     def cartId: String
   }
 
-  final case class AmountAdded(cartId: String, userId: String, amount: Int)
+  final case class AmountAdded(cartId: String, userId: String, amount: Int, zone: String, bus_number: Int, time: Int)
     extends Event
 
   /*final case class AmountExtracted(cartId: String, userId: String, fee: Int,
@@ -90,7 +91,7 @@ object BusCart {
            else {
              val new_amount = amount + state.getAmount(userId)
              Effect
-               .persist(AmountAdded(cartId, userId, new_amount))
+               .persist(AmountAdded(cartId, userId, new_amount, "", 0, 0))
                .thenReply(replyTo) { updatedCart =>
                  StatusReply.Success(Summary(userId, new_amount))
                }
@@ -100,7 +101,7 @@ object BusCart {
              Effect.reply(replyTo)(StatusReply.Error("Quantity must be greater than zero"))
            else {
              Effect
-               .persist(AmountAdded(cartId, userId, amount))
+               .persist(AmountAdded(cartId, userId, amount, "", 0, 0))
                .thenReply(replyTo) { updatedCart =>
                  StatusReply.Success(Summary(userId, amount))
                }
@@ -115,7 +116,7 @@ object BusCart {
           else {
             val new_amount = amount - fee
             Effect
-              .persist(AmountAdded(cartId, userId, new_amount))
+              .persist(AmountAdded(cartId, userId, new_amount, zone, bus_number, time))
               .thenReply(replyTo) { updatedCart =>
                 StatusReply.Success(Summary(userId, new_amount))
               }
@@ -130,7 +131,7 @@ object BusCart {
 
   private def handleEvent(state: State, event: Event) = {
     event match {
-      case AmountAdded(_, userId, amount) =>
+      case AmountAdded(_, userId, amount, zone, bus_number, time) =>
         state.updateItem(userId, amount)
     }
   }
@@ -138,13 +139,22 @@ object BusCart {
   val EntityKey: EntityTypeKey[Command] =
     EntityTypeKey[Command]("BusCart")
 
+  val tags = Vector.tabulate(5)(i => s"carts-$i")
+
   def init(system: ActorSystem[_]): Unit = {
-    ClusterSharding(system).init(Entity(EntityKey) { entityContext =>
+    /*ClusterSharding(system).init(Entity(EntityKey) { entityContext =>
       BusCart(entityContext.entityId)
-    })
+    })*/
+    val behaviorFactory: EntityContext[Command] => Behavior[Command] = {
+      entityContext =>
+        val i = math.abs(entityContext.entityId.hashCode % tags.size)
+        val selectedTag = tags(i)
+        BusCart(entityContext.entityId, selectedTag)
+    }
+    ClusterSharding(system).init(Entity(EntityKey)(behaviorFactory))
   }
 
-  def apply(cartId: String): Behavior[Command] = {
+  def apply(cartId: String, projectionTag: String): Behavior[Command] = {
     EventSourcedBehavior
       .withEnforcedReplies[Command, Event, State](
         persistenceId = PersistenceId(EntityKey.name, cartId),
@@ -152,6 +162,7 @@ object BusCart {
         commandHandler =
           (state, command) => handleCommand(cartId, state, command),
         eventHandler = (state, event) => handleEvent(state, event))
+      .withTagger(_ => Set(projectionTag))
       .withRetention(RetentionCriteria
         .snapshotEvery(numberOfEvents = 100, keepNSnapshots = 3))
       .onPersistFailure(
