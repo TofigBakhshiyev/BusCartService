@@ -49,6 +49,6 @@ class UserTransactionRepositoryImpl(session: CassandraSession, keyspace: String)
         cartid = row.getString("cartid").toString,
         time = row.getInt("time").toInt,
         zone = row.getString("zone").toString)))
-      //.map(opt => opt.map(row => row.getInt("bus_number").intValue()))
+      //.map(opt => opt.map(row => row.getInt("bus_number").intValue())) // get single column
   }
 }

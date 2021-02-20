@@ -32,7 +32,7 @@ class Main(context: ActorContext[Nothing])
   val session = CassandraSessionRegistry(system).sessionFor(
     "akka.persistence.cassandra"
   )
-  // use same keyspace for the item_popularity table as the offset store
+  // use same keyspace for the user_projection table as the offset store
   val userTransactionKeyspace =
     system.settings.config
       .getString("akka.projection.cassandra.offset-store.keyspace")
