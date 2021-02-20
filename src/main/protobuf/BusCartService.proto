@@ -11,6 +11,7 @@ service BusCartService {
   rpc AddAmount (AddAmountRequest) returns (Cart) {}
   rpc ExtractAmount (ExtractAmountRequest) returns (Cart) {}
   rpc GetCart (GetCartRequest) returns (Cart) {}
+  rpc GetUserLastTransaction(GetUserLastTransactionRequest) returns (GetUserLastTransactionResponse) {}
 }
 
 message AddAmountRequest {
@@ -44,4 +45,16 @@ message ExtractAmountRequest {
 message GetCartRequest {
   string cartId = 1;
   string userId = 2;
+}
+
+message GetUserLastTransactionRequest {
+  string userId = 1;
+}
+
+message GetUserLastTransactionResponse {
+  string cartId = 1;
+  string userId = 2;
+  string zone = 3;
+  int32 bus_number = 4;
+  int32 time = 5;
 }

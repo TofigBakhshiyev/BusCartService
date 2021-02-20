@@ -1,9 +1,7 @@
 package bus.cart
 
 import java.util.concurrent.TimeoutException
-
 import scala.concurrent.Future
-
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.grpc.GrpcServiceException
@@ -11,7 +9,7 @@ import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
 
-class BusCartServiceImpl(system: ActorSystem[_]) extends proto.BusCartService {
+class BusCartServiceImpl(system: ActorSystem[_], userTransactionRepository: UserTransactionRepository) extends proto.BusCartService {
 
   import system.executionContext
 
@@ -67,6 +65,28 @@ class BusCartServiceImpl(system: ActorSystem[_]) extends proto.BusCartService {
         Future.failed(
           new GrpcServiceException(
             Status.INVALID_ARGUMENT.withDescription(exc.getMessage)))
+    }
+  }
+
+  override def getUserLastTransaction(in: proto.GetUserLastTransactionRequest)
+  : Future[proto.GetUserLastTransactionResponse] = {
+    userTransactionRepository.getUser(in.userId).map {
+      case Some(row) =>
+        proto.GetUserLastTransactionResponse(
+          row.cartid,
+          row.userid,
+          row.zone,
+          row.bus_number,
+          row.time
+        )
+      case None =>
+        proto.GetUserLastTransactionResponse(
+          "",
+          in.userId,
+          "",
+          0,
+          0
+        )
     }
   }
 }

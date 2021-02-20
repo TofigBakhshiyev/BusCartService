@@ -7,6 +7,7 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
+import akka.stream.alpakka.cassandra.scaladsl.CassandraSessionRegistry
 
 object Main {
 
@@ -28,11 +29,25 @@ class Main(context: ActorContext[Nothing])
 
   BusCart.init(system)
 
+  val session = CassandraSessionRegistry(system).sessionFor(
+    "akka.persistence.cassandra"
+  )
+  // use same keyspace for the user_projection table as the offset store
+  val userTransactionKeyspace =
+    system.settings.config
+      .getString("akka.projection.cassandra.offset-store.keyspace")
+  val userTransactionRepository =
+    new UserTransactionRepositoryImpl(session, userTransactionKeyspace)(
+      system.executionContext
+    )
+
+  TransactionProjection.init(system, userTransactionRepository)
+
   val grpcInterface =
     system.settings.config.getString("bus-cart-service.grpc.interface")
   val grpcPort =
     system.settings.config.getInt("bus-cart-service.grpc.port")
-  val grpcService = new BusCartServiceImpl(system)
+  val grpcService = new BusCartServiceImpl(system, userTransactionRepository)
   BusCartServer.start(grpcInterface, grpcPort, system, grpcService)
 
   override def onMessage(msg: Nothing): Behavior[Nothing] =
