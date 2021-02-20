@@ -3,10 +3,13 @@ package bus.cart
 import scala.concurrent.Future
 import akka.Done
 
+case class UserLastTransactionRow(userid: String, bus_number: Int,
+                                  cartid: String, time: Int, zone: String)
+
 trait UserTransactionRepository {
   def update(cartId: String, userId: String, zone: String,
              bus_number: Int, time: Int): Future[Done]
-  def getUser(userId: String): Future[Option[Long]]
+  def getUser(userId: String): Future[Option[UserLastTransactionRow]]
 }
 
 import scala.concurrent.Future
@@ -35,11 +38,17 @@ class UserTransactionRepositoryImpl(session: CassandraSession, keyspace: String)
     )
   }
 
-  override def getUser(userId: String): Future[Option[Long]] = {
+  override def getUser(userId: String): Future[Option[UserLastTransactionRow]] = {
     session
       .selectOne(
-        s"SELECT userId, bus_number FROM $keyspace.$popularityTable WHERE userId = ?",
+        s"SELECT * FROM $keyspace.$popularityTable WHERE userId = ?",
         userId)
-      .map(opt => opt.map(row => row.getInt("bus_number").intValue()))
+      .map(opt => opt.map(row => UserLastTransactionRow(
+        userid = row.getString("userid").toString,
+        bus_number = row.getInt("bus_number").intValue(),
+        cartid = row.getString("cartid").toString,
+        time = row.getInt("time").toInt,
+        zone = row.getString("zone").toString)))
+      //.map(opt => opt.map(row => row.getInt("bus_number").intValue()))
   }
 }

@@ -52,6 +52,9 @@ message GetUserLastTransactionRequest {
 }
 
 message GetUserLastTransactionResponse {
-  string userId = 1;
-  int64 bus_number = 2;
+  string cartId = 1;
+  string userId = 2;
+  string zone = 3;
+  int32 bus_number = 4;
+  int32 time = 5;
 }

@@ -24,19 +24,7 @@ class ProjectionHandler(
     envelope.event match {
       case BusCart.AmountAdded(cartId, userId, _, zone, bus_number, time) =>
         val result = repo.update(cartId, userId, zone, bus_number, time)
-        // result.foreach(_ => logItemCount(cartId))
         result
     }
   }
-
-  /*private def logItemCount(userId: String): Unit = {
-    repo.getUser(userId).foreach { optCount =>
-      log.info(
-        "PopularityProjectionHandler({}) user data for '{}': [{}]",
-        tag,
-        userId,
-        optCount.getOrElse(0))
-    }
-  }*/
-
 }
