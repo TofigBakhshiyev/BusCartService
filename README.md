@@ -1,3 +1,6 @@
+## Bus cart serivce
+Used Event sourcing & CQRS architecture
+
 ## Running the sample code
 
 1. Start a first node:
