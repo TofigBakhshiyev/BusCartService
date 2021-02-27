@@ -1,7 +1,6 @@
 name := "bus-service"
 version := "1.0"
-
-organization := "com.lightbend.akka.samples"
+ 
 organizationHomepage := Some(url("https://akka.io"))
 licenses := Seq(("CC0", url("https://creativecommons.org/publicdomain/zero/1.0")))
 
