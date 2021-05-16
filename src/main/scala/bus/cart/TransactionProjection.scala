@@ -15,8 +15,8 @@ import akka.projection.scaladsl.SourceProvider
 
 object TransactionProjection {
   def init(
-            system: ActorSystem[_],
-            repository: UserTransactionRepository): Unit = {
+      system: ActorSystem[_],
+      repository: UserTransactionRepository): Unit = {
     ShardedDaemonProcess(system).init(
       name = "TransactionProjection",
       BusCart.tags.size,
@@ -27,14 +27,13 @@ object TransactionProjection {
   }
 
   private def createProjectionFor(
-                                   system: ActorSystem[_],
-                                   repository: UserTransactionRepository,
-                                   index: Int)
-  : AtLeastOnceProjection[Offset, EventEnvelope[BusCart.Event]] = {
+      system: ActorSystem[_],
+      repository: UserTransactionRepository,
+      index: Int)
+      : AtLeastOnceProjection[Offset, EventEnvelope[BusCart.Event]] = {
     val tag = BusCart.tags(index)
 
-    val sourceProvider
-    : SourceProvider[Offset, EventEnvelope[BusCart.Event]] =
+    val sourceProvider: SourceProvider[Offset, EventEnvelope[BusCart.Event]] =
       EventSourcedProvider.eventsByTag[BusCart.Event](
         system = system,
         readJournalPluginId = CassandraReadJournal.Identifier,
@@ -43,9 +42,7 @@ object TransactionProjection {
     CassandraProjection.atLeastOnce(
       projectionId = ProjectionId("TransactionProjection", tag),
       sourceProvider,
-      handler = () =>
-        new ProjectionHandler(tag, system, repository)
-    )
+      handler = () => new ProjectionHandler(tag, system, repository))
   }
 
 }

@@ -15,7 +15,11 @@ import akka.http.scaladsl.model.HttpResponse
 
 object BusCartServer {
 
-  def start(interface: String, port: Int, system: ActorSystem[_], grpcService: proto.BusCartService): Unit = {
+  def start(
+      interface: String,
+      port: Int,
+      system: ActorSystem[_],
+      grpcService: proto.BusCartService): Unit = {
     implicit val sys: ActorSystem[_] = system
     implicit val ec: ExecutionContext =
       system.executionContext
@@ -24,8 +28,7 @@ object BusCartServer {
       ServiceHandler.concatOrNotFound(
         proto.BusCartServiceHandler.partial(grpcService),
         // ServerReflection enabled to support grpcurl without import-path and proto parameters
-        ServerReflection.partial(List(proto.BusCartService))
-      )
+        ServerReflection.partial(List(proto.BusCartService)))
 
     val bound =
       Http()

@@ -29,17 +29,15 @@ class Main(context: ActorContext[Nothing])
 
   BusCart.init(system)
 
-  val session = CassandraSessionRegistry(system).sessionFor(
-    "akka.persistence.cassandra"
-  )
+  val session =
+    CassandraSessionRegistry(system).sessionFor("akka.persistence.cassandra")
   // use same keyspace for the user_projection table as the offset store
   val userTransactionKeyspace =
     system.settings.config
       .getString("akka.projection.cassandra.offset-store.keyspace")
   val userTransactionRepository =
     new UserTransactionRepositoryImpl(session, userTransactionKeyspace)(
-      system.executionContext
-    )
+      system.executionContext)
 
   TransactionProjection.init(system, userTransactionRepository)
 

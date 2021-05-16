@@ -27,19 +27,28 @@ object BusCart {
    * all the events emitted by this command are successfully persisted.
    */
 
-  final case class AddAmount(userId: String, amount: Int, replyTo: ActorRef[StatusReply[Summary]])
-    extends Command
+  final case class AddAmount(
+      userId: String,
+      amount: Int,
+      replyTo: ActorRef[StatusReply[Summary]])
+      extends Command
 
-  final case class ExtractAmount(userId: String, fee: Int, zone: String, bus_number: Int, time: Int,
-                                 replyTo: ActorRef[StatusReply[Summary]]) extends Command
+  final case class ExtractAmount(
+      userId: String,
+      fee: Int,
+      zone: String,
+      bus_number: Int,
+      time: Int,
+      replyTo: ActorRef[StatusReply[Summary]])
+      extends Command
 
-  final case class Get(userId: String, replyTo: ActorRef[Summary]) extends Command
+  final case class Get(userId: String, replyTo: ActorRef[Summary])
+      extends Command
 
   /**
    * Summary of the bus cart state, used in reply messages.
    */
   final case class Summary(userId: String, amount: Int) extends CborSerializable
-
 
   /**
    * This interface defines all the events that the BusCart supports.
@@ -49,8 +58,14 @@ object BusCart {
     def cartId: String
   }
 
-  final case class AmountAdded(cartId: String, userId: String, amount: Int, zone: String, bus_number: Int, time: Int)
-    extends Event
+  final case class AmountAdded(
+      cartId: String,
+      userId: String,
+      amount: Int,
+      zone: String,
+      bus_number: Int,
+      time: Int)
+      extends Event
 
   /*final case class AmountExtracted(cartId: String, userId: String, fee: Int,
                                    zone: String, bus_number: Int, time: Int)
@@ -65,7 +80,7 @@ object BusCart {
       user(userId)
 
     def toSummary(userId: String): Summary = {
-       Summary(userId, user(userId))
+      Summary(userId, user(userId))
     }
 
     def updateItem(userId: String, amount: Int): State = {
@@ -79,59 +94,55 @@ object BusCart {
   }
 
   private def handleCommand(
-                             cartId:
-                             String,
-                             state: State,
-                             command: Command): ReplyEffect[Event, State] = {
+      cartId: String,
+      state: State,
+      command: Command): ReplyEffect[Event, State] = {
     command match {
       case AddAmount(userId, amount, replyTo) =>
-         if (state.hasItem(userId)) {
-           if (amount <= 0)
-             Effect.reply(replyTo)(StatusReply.Error("Quantity must be greater than zero"))
-           else {
-             val new_amount = amount + state.getAmount(userId)
-             Effect
-               .persist(AmountAdded(cartId, userId, new_amount, "", 0, 0))
-               .thenReply(replyTo) { updatedCart =>
-                 StatusReply.Success(Summary(userId, new_amount))
-               }
-           }
-         } else {
-           if (amount <= 0)
-             Effect.reply(replyTo)(StatusReply.Error("Quantity must be greater than zero"))
-           else {
-             Effect
-               .persist(AmountAdded(cartId, userId, amount, "", 0, 0))
-               .thenReply(replyTo) { updatedCart =>
-                 StatusReply.Success(Summary(userId, amount))
-               }
-           }
-         }
-      case ExtractAmount(userId, fee, zone, bus_number, time, replyTo) =>
         if (state.hasItem(userId)) {
-          val amount = state.getAmount(userId)
-          if (amount < fee)
-            Effect.reply(replyTo)(StatusReply.Error("You have not enough money, " +
-              "please increase card balance"))
+          if (amount <= 0)
+            Effect.reply(replyTo)(
+              StatusReply.Error("Quantity must be greater than zero"))
           else {
-            val new_amount = amount - fee
+            val new_amount = amount + state.getAmount(userId)
             Effect
-              .persist(AmountAdded(cartId, userId, new_amount, zone, bus_number, time))
+              .persist(AmountAdded(cartId, userId, new_amount, "", 0, 0))
               .thenReply(replyTo) { updatedCart =>
                 StatusReply.Success(Summary(userId, new_amount))
               }
           }
         } else {
-          Effect.reply(replyTo)(StatusReply.Error("There is not any card with this card Id"))
+          Effect.reply(replyTo)(
+            StatusReply.Error("There is not any card with this card Id"))
+        }
+      case ExtractAmount(userId, fee, zone, bus_number, time, replyTo) =>
+        if (state.hasItem(userId)) {
+          val amount = state.getAmount(userId)
+          if (amount < fee)
+            Effect.reply(replyTo)(
+              StatusReply.Error("You have not enough money, " +
+              "please increase card balance"))
+          else {
+            val new_amount = amount - fee
+            Effect
+              .persist(
+                AmountAdded(cartId, userId, new_amount, zone, bus_number, time))
+              .thenReply(replyTo) { updatedCart =>
+                StatusReply.Success(Summary(userId, new_amount))
+              }
+          }
+        } else {
+          Effect.reply(replyTo)(
+            StatusReply.Error("There is not any card with this card Id"))
         }
       case Get(userId, replyTo) =>
-        Effect.reply(replyTo)(state.toSummary(userId))
+          Effect.reply(replyTo)(state.toSummary(userId))
     }
   }
 
   private def handleEvent(state: State, event: Event) = {
     event match {
-      case AmountAdded(_, userId, amount, zone, bus_number, time) =>
+      case AmountAdded(_, userId, amount, _, _, _) =>
         state.updateItem(userId, amount)
     }
   }
@@ -166,7 +177,6 @@ object BusCart {
       .withRetention(RetentionCriteria
         .snapshotEvery(numberOfEvents = 100, keepNSnapshots = 3))
       .onPersistFailure(
-        SupervisorStrategy.restartWithBackoff(200.millis, 5.seconds, 0.1)
-      )
+        SupervisorStrategy.restartWithBackoff(200.millis, 5.seconds, 0.1))
   }
 }
