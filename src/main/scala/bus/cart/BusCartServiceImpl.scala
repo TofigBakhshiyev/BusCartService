@@ -9,7 +9,10 @@ import akka.util.Timeout
 import io.grpc.Status
 import org.slf4j.LoggerFactory
 
-class BusCartServiceImpl(system: ActorSystem[_], userTransactionRepository: UserTransactionRepository) extends proto.BusCartService {
+class BusCartServiceImpl(
+    system: ActorSystem[_],
+    userTransactionRepository: UserTransactionRepository)
+    extends proto.BusCartService {
 
   import system.executionContext
 
@@ -30,13 +33,20 @@ class BusCartServiceImpl(system: ActorSystem[_], userTransactionRepository: User
     convertError(response)
   }
 
-  override def extractAmount(in: proto.ExtractAmountRequest): Future[proto.Cart] = {
-    logger.info("fee {} extracted from cart {} in {} in the {} number bus - time: {}",
-      in.fee, in.cartId, in.zone, in.busNumber, in.time)
+  override def extractAmount(
+      in: proto.ExtractAmountRequest): Future[proto.Cart] = {
+    logger.info(
+      "fee {} extracted from cart {} in {} in the {} number bus - time: {}",
+      in.fee,
+      in.cartId,
+      in.zone,
+      in.busNumber,
+      in.time)
     val entityRef = sharding.entityRefFor(BusCart.EntityKey, in.cartId)
     val reply: Future[BusCart.Summary] =
-      entityRef.askWithStatus(BusCart.ExtractAmount(in.userId, in.fee,
-        in.zone, in.busNumber, in.time, _))
+      entityRef.askWithStatus(
+        BusCart
+          .ExtractAmount(in.userId, in.fee, in.zone, in.busNumber, in.time, _))
     val response = reply.map(cart => toProtoCart(cart))
     convertError(response)
   }
@@ -46,7 +56,7 @@ class BusCartServiceImpl(system: ActorSystem[_], userTransactionRepository: User
     val entityRef = sharding.entityRefFor(BusCart.EntityKey, in.cartId)
     val response =
       entityRef.ask(BusCart.Get(in.userId, _)).map { cart =>
-          toProtoCart(cart)
+        toProtoCart(cart)
       }
     convertError(response)
   }
@@ -69,7 +79,7 @@ class BusCartServiceImpl(system: ActorSystem[_], userTransactionRepository: User
   }
 
   override def getUserLastTransaction(in: proto.GetUserLastTransactionRequest)
-  : Future[proto.GetUserLastTransactionResponse] = {
+      : Future[proto.GetUserLastTransactionResponse] = {
     userTransactionRepository.getUser(in.userId).map {
       case Some(row) =>
         proto.GetUserLastTransactionResponse(
@@ -77,16 +87,9 @@ class BusCartServiceImpl(system: ActorSystem[_], userTransactionRepository: User
           row.userid,
           row.zone,
           row.bus_number,
-          row.time
-        )
+          row.time)
       case None =>
-        proto.GetUserLastTransactionResponse(
-          "",
-          in.userId,
-          "",
-          0,
-          0
-        )
+        proto.GetUserLastTransactionResponse("", in.userId, "", 0, 0)
     }
   }
 }
